@@ -55,9 +55,9 @@ news() {
 		news_changes_date=$(jq '.Informes[0].alteracao' ${news_json} | \
 												sed 's/\"//g; s/ /\+/g')
 
-		title="*${news_title}* "
+		title="*${news_title//\-/\\-}* "
 		changes_date="_\[${news_changes_date}\]_%0A"
-		resp_sec="%0A__Fonte:+${news_resp_sec}__%0A%0A"
+		resp_sec="%0A__Fonte:+${news_resp_sec//\-/\\-}__%0A%0A"
 		desc="${news_desc//\./\\.}%0A"
 		ufgd_main_url="https://ufgd.edu.br"
 		url="\[[acesse\_aqui](${ufgd_main_url//\./\\.}${news_url//\-/\\-})\]"
@@ -65,7 +65,6 @@ news() {
 		full_text_news="${title}${changes_date}${resp_sec}${desc}${url}"
 
 		if [[ ${hash} -eq 0 ]]; then
-			echo "[${hash}]"
 			bot_tg
 		fi
 	fi
