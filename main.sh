@@ -18,7 +18,10 @@ get_json() {
 
 		req=$(curl -s "${data_arr[1]}" -o /tmp/ufgd_news.json)
 		if [[ ${req} -ne 0 ]]; then
-			curl -s "${data_arr[2]}/bot${data_arr[3]}/sendMessage?chat_id=${data_arr[5]}&text=bug_ufgd_news"
+			curl -s \
+			-X POST \ "${data_arr[2]}/bot${data_arr[4]}/sendMessage" \
+			-d "chat_id=${data_arr[5]}" \
+			-d "text=bug_ufgd_news"
 		fi
 
 		new_file_hash=$(md5sum < /tmp/ufgd_news.json)
@@ -34,6 +37,7 @@ get_json() {
 	fi
 }
 
+	
 news() {
 	if get_json; then
 		news_title=$(jq '.Informes[0].titulo' ${news_json} | \
@@ -51,33 +55,36 @@ news() {
 		news_changes_date=$(jq '.Informes[0].alteracao' ${news_json} | \
 												sed 's/\"//g; s/ /\+/g')
 
-		title="*${news_title}*+%5F"
-		changes_date="${news_changes_date}%5F%0A"
-		resp_sec="%5FFonte:+${news_resp_sec}%5F%0A%0A"
-		desc="${news_desc}%0A"
-		url="(\[link\](https://ufgd.edu.br${news_url}))"
+		title="*${news_title}* "
+		changes_date="_\[${news_changes_date}\]_%0A"
+		resp_sec="%0A__Fonte:+${news_resp_sec}__%0A%0A"
+		desc="${news_desc//\./\\.}%0A"
+		ufgd_main_url="https://ufgd.edu.br"
+		url="\[[acesse\_aqui](${ufgd_main_url//\./\\.}${news_url//\-/\\-})\]"
 
 		full_text_news="${title}${changes_date}${resp_sec}${desc}${url}"
 
 		if [[ ${hash} -eq 0 ]]; then
+			echo "[${hash}]"
 			bot_tg
 		fi
 	fi
 }
 
 bot_tg() {
-	tg_api_url=${data_arr[2]}
-	bot_data="bot${data_arr[3]}"
-	method="sendMessage?chat_id=${data_arr[4]}"
-	text="&text=${full_text_news}&parse_mode=markdown"
 
-	post_req=$(curl -s "${tg_api_url}/${bot_data}/${method}${text}")
+	curl -s\
+	-X POST \
+	"${data_arr[2]}/bot${data_arr[3]}/sendMessage" \
+	-d chat_id=${data_arr[4]} \
+	-d parse_mode='MarkdownV2' \
+	-d text="${full_text_news}"
 }
 
 main() {
 	while true; do
 		news
-		sleep 10
+		sleep 1800 
 	done
 }
 
