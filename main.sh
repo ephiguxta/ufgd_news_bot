@@ -5,7 +5,7 @@ declare -a data_arr
 #1: ufgd_news_url; #2: tg_bot_api; 3: bot_token; 4: chat_id; 5: dev_chat_id
 for i in {1..5}
 do
-	data_arr[${i}]=$(sed -n "${i}p" ${1})
+	data_arr[${i}]=$(sed -n "${i}p" "$1")
 done
 
 # make requests to ufgd news and parse this data,
@@ -27,7 +27,7 @@ get_json() {
 
 		#compare if the site changed
 		hash=1
-		if [[ ${new_file_hash::32} != ${old_file_hash::32} ]]; then
+		if [[ ${new_file_hash::32} != "${old_file_hash::32}" ]]; then
 			hash=0
 		fi
 
@@ -66,11 +66,11 @@ parse_data() {
 	
 		full_text_news="${title}${resp_sec}${desc}${url}"
 
-		bot_tg $1
+		bot_tg "$1"
 
 	else
-		echo "[($date +%H%M)] error: $1" >> error_log
-		bot_tg $1
+		echo "[$(date +%H%M)] error: $1" >> error_log
+		bot_tg "$1"
 
 	fi
 }
@@ -88,7 +88,7 @@ bot_tg() {
 	curl -L -s \
 	-X POST \
 	"${data_arr[2]}/bot${data_arr[3]}/sendMessage" \
-	-d chat_id=$chat_id \
+	-d chat_id="$chat_id" \
 	-d parse_mode='MarkdownV2' \
 	-d text="$text"
 }
@@ -100,4 +100,4 @@ main() {
 	done
 }
 
-main $@
+main "$@"
