@@ -1,42 +1,54 @@
 #!/bin/bash
 
 declare -a data_arr
-#the array begins in 1, not 0
-#1: ufgd_news_url; #2: tg_bot_api; 3: bot_token; 4: chat_id; 5: dev_chat_id
-for i in {1..5}
+#1: ufgd_news_url
+#2: tg_bot_api
+#3: bot_token
+#4: chat_id
+#5: dev_chat_id
+
+for i in {1..4}
 do
-	data_arr[${i}]=$(sed -n "${i}p" "$1")
+	# good vectors start at zero
+	data_arr[$(( ${i} - 1 ))]=$(sed -n "${i}p" "$1")
 done
 
 # make requests to ufgd news and parse this data,
 # maintain two files to compare in each requests
 get_json() {
-	path_json='/tmp/ufgd_news.json'
-
-	#testing if file exists
+	local path_json='/tmp/ufgd_news.json'
 	hash=0
-	if [[ -e $path_json ]]; then
-		cp  $path_json "${path_json/.json/}_news.json"
 
-		curl -L -s "${data_arr[1]}" -o $path_json
+	# getting news json
+	http_code=$(curl --write-out "%{http_code}" \
+								-s "${data_arr[0]}" \
+								-o $path_json)
+
+	# code = 200 and ufgd_news.json is valid
+	if [[ $http_code -eq 200 && -s $path_json ]]; then
+
+		# bot first try
+		# TODO: run this only once
+		if [[ ! -e ${path_json/.json/}_old.json ]]; then
+			parse_data $hash
+			return
+		fi
+			
+		# other file name need to be: ufgd_news_old.json
+		cp  $path_json "${path_json/.json/}_old.json"
 		
-		new_file_hash=$(md5sum < $path_json)
+		local new_file_hash=$(md5sum < $path_json)
+		local old_file_hash=$(md5sum < "${path_json/.json/}_old.json")
 
-		#TODO: correct this replacement
-		old_file_hash=$(md5sum < "${path_json/.json/}_news.json")
-
-		#compare if the site changed
+		# compare if the site data changed
+		# ${#md5sum_string} -eq 32
 		hash=1
 		if [[ ${new_file_hash::32} != "${old_file_hash::32}" ]]; then
 			hash=0
 		fi
 
+		# if have new news the bot send msg:
 		[[ $hash -eq 0 ]] && parse_data $hash
-
-	else
-		curl -L -s "${data_arr[1]}" -o $path_json
-		parse_data $hash
-
 	fi
 }
 
@@ -76,18 +88,18 @@ parse_data() {
 }
 
 bot_tg() {
-	chat_id=${data_arr[4]}
+	chat_id=${data_arr[3]}
 	text=${full_text_news}
 
 	# send message to de dev
 	if [[ $1 -eq 1 ]]; then
-		chat_id=${data_arr[5]}
+		chat_id=${data_arr[4]}
 		text="bug+on+bot"
 	fi
 
 	curl -L -s \
 	-X POST \
-	"${data_arr[2]}/bot${data_arr[3]}/sendMessage" \
+	"${data_arr[1]}/bot${data_arr[2]}/sendMessage" \
 	-d chat_id="$chat_id" \
 	-d parse_mode='MarkdownV2' \
 	-d text="$text"
