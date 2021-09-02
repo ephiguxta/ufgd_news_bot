@@ -24,18 +24,20 @@ get_json() {
 								-s "${data_arr[0]}" \
 								-o $path_json)
 
+	if [[ ! -e ${path_json/.json/}_old.json ]]; then
+			parse_data $hash
+
+			# other file name need to be: ufgd_news_old.json
+			cp  $path_json "${path_json/.json/}_old.json"
+
+			return
+	fi
+			
 	# code = 200 and ufgd_news.json is valid
 	if [[ $http_code -eq 200 && -s $path_json ]]; then
 		local new_file_hash
 		local old_file_hash
 
-		# bot first try
-		# TODO: run this only once
-		if [[ ! -e ${path_json/.json/}_old.json ]]; then
-			parse_data $hash
-			return
-		fi
-			
 		# other file name need to be: ufgd_news_old.json
 		cp  $path_json "${path_json/.json/}_old.json"
 		
