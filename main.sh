@@ -60,9 +60,11 @@ parse_data() {
 
 		title=$(jq '.Informes[0].titulo' "$path_json" | \
 			url_encode)
+		echo -e "\n[${title}]\n"
 
 		desc=$(jq '.Informes[0].descricao' "$path_json" | \
 			url_encode)
+		echo -e "\n[${desc}]\n"
 
 		resp_sec=$(jq '.Informes[0].setorResponsavel' "$path_json" | \
 			url_encode)
@@ -72,16 +74,12 @@ parse_data() {
 
 		#formating to post in telegram
 
-		title="*${title}*"
-		resp_sec="%0A__Fonte:${resp_sec}__%0A%0A"
+		title="*${title}*%0A"
+		resp_sec="%5F%5FFonte:%20${resp_sec}%5F%5F%0A%0A"
 		desc="${desc}%0A"
-		ufgd_url="https://ufgd.edu.br"
-		url="\[[acesse\_aqui](${ufgd_url}${url})\]"
-	
-		echo -e "title:\n[${title}]\n"
-		echo -e "desc:\n[${desc}]\n"
-		echo -e "resp_sec:\n[${resp_sec}]\n"
-		echo -e "url:\n[${url}]\n"
+
+		ufgd_url='https://ufgd\.edu\.br'
+		url="\[[acesse\_aqui](${ufgd_url}${url:2:-2})\]"
 
 		full_text_news="${title}${resp_sec}${desc}${url}"
 
@@ -107,52 +105,58 @@ url_encode() {
 
 			case $char in
 				'  ' | ' ')
-					new_url[${i}]="%2B"
+					new_url[${i}]="%20"
 					continue
 					;;
 
 				'&')
-					new_url[${i}]="%26"
+					new_url[${i}]='\&'
 					continue
 					;;
 
 				\')
-					new_url[${i}]="%27"
+					new_url[${i}]=''
+					continue
+					;;
+					
+				\")
+					new_url[${i}]='\"'
 					continue
 					;;
 
 				'-')
-					new_url[${i}]="%2D"
+					new_url[${i}]='\-'
 					continue
 					;;
 
 				'+')
-					new_url[${i}]="\\+"
-					continue
+					new_url[${i}]='\+'
+					continue;
 					;;
 
 				'/')
-					new_url[${i}]="\\/"
+					new_url[${i}]='\/'
 					continue
 					;;
 
 				'.')
-					new_url[${i}]="%2E"
+					new_url[${i}]='\.'
+					#"%2E"
 					continue
 					;;
 
 				'#')
-					new_url[${i}]="%23"
+					new_url[${i}]='\#'
 					continue
 					;;
 					
 				':')
-					new_url[${i}]="%3A"
+					new_url[${i}]='\:'
 					continue
 					;;
 
 				'=')
-					new_url[${i}]="%3D"
+					new_url[${i}]='\='
 					continue
 					;;
 			esac
@@ -177,7 +181,7 @@ bot_tg() {
 		text="bug on bot"
 	fi
 
-	curl -sS \
+	curl -s \
 	-X POST \
 	"${data_arr[1]}/bot${data_arr[2]}/sendMessage" \
 	-d chat_id="$chat_id" \
@@ -193,4 +197,3 @@ main() {
 }
 
 main "$@"
-
