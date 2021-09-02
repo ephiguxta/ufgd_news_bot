@@ -10,7 +10,7 @@ declare -a data_arr
 for i in {1..4}
 do
 	# good vectors start at zero
-	data_arr[$(( ${i} - 1 ))]=$(sed -n "${i}p" "$1")
+	data_arr[$(( i - 1 ))]=$(sed -n "${i}p" "$1")
 done
 
 # make requests to ufgd news and parse this data,
@@ -26,6 +26,8 @@ get_json() {
 
 	# code = 200 and ufgd_news.json is valid
 	if [[ $http_code -eq 200 && -s $path_json ]]; then
+		local new_file_hash
+		local old_file_hash
 
 		# bot first try
 		# TODO: run this only once
@@ -37,8 +39,8 @@ get_json() {
 		# other file name need to be: ufgd_news_old.json
 		cp  $path_json "${path_json/.json/}_old.json"
 		
-		local new_file_hash=$(md5sum < $path_json)
-		local old_file_hash=$(md5sum < "${path_json/.json/}_old.json")
+		new_file_hash=$(md5sum < $path_json)
+		old_file_hash=$(md5sum < "${path_json/.json/}_old.json")
 
 		# compare if the site data changed
 		# ${#md5sum_string} -eq 32
@@ -57,25 +59,30 @@ parse_data() {
 	if [[ $1 -eq 0 ]]; then
 
 		title=$(jq '.Informes[0].titulo' "$path_json" | \
-			sed 's/\./\\./g; s/\"//g; s/  / /g; s/ /\+/g; s/\-/\\-/g')
+			url_encode)
 
 		desc=$(jq '.Informes[0].descricao' "$path_json" | \
-			sed 's/\./\\./g; s/\"//g; s/  / /g; s/ /\+/g; s/\-/\\-/g')
+			url_encode)
 
 		resp_sec=$(jq '.Informes[0].setorResponsavel' "$path_json" | \
-			sed 's/\./\\./g; s/\"//g; s/  / /g; s/ /\+/g; s/\-/\\-/g')
+			url_encode)
 										
 		url=$(jq '.Informes[0].url' "$path_json" | \
-			sed 's/\./\\./g; s/\"//g; s/  / /g; s/ /\+/g; s/\-/\\-/g')
+			url_encode)
 
 		#formating to post in telegram
 
-		title="*${title}*+"
-		resp_sec="%0A__Fonte:+${resp_sec}__%0A%0A"
+		title="*${title}*"
+		resp_sec="%0A__Fonte:${resp_sec}__%0A%0A"
 		desc="${desc}%0A"
 		ufgd_url="https://ufgd.edu.br"
 		url="\[[acesse\_aqui](${ufgd_url}${url})\]"
 	
+		echo -e "title:\n[${title}]\n"
+		echo -e "desc:\n[${desc}]\n"
+		echo -e "resp_sec:\n[${resp_sec}]\n"
+		echo -e "url:\n[${url}]\n"
+
 		full_text_news="${title}${resp_sec}${desc}${url}"
 
 		bot_tg "$1"
@@ -87,6 +94,79 @@ parse_data() {
 	fi
 }
 
+url_encode() {
+	declare -a new_url=""
+	local url
+
+	if [[ -p /dev/stdin ]]; then
+		read -r url 
+
+		for(( i=0; i < ${#url}; i++)); do
+			# isolating each char
+			local char="${url:${i}:1}"
+
+			case $char in
+				'  ' | ' ')
+					new_url[${i}]="%2B"
+					continue
+					;;
+
+				'&')
+					new_url[${i}]="%26"
+					continue
+					;;
+
+				\')
+					new_url[${i}]="%27"
+					continue
+					;;
+
+				'-')
+					new_url[${i}]="%2D"
+					continue
+					;;
+
+				'+')
+					new_url[${i}]="\\+"
+					continue
+					;;
+
+				'/')
+					new_url[${i}]="\\/"
+					continue
+					;;
+
+				'.')
+					new_url[${i}]="%2E"
+					continue
+					;;
+
+				'#')
+					new_url[${i}]="%23"
+					continue
+					;;
+					
+				':')
+					new_url[${i}]="%3A"
+					continue
+					;;
+
+				'=')
+					new_url[${i}]="%3D"
+					continue
+					;;
+			esac
+
+			#[a-A0-9]
+			new_url[${i}]="$char"
+			
+		done
+
+		#TODO: find another method to join the string
+		sed 's/ //g' <<< "${new_url[*]}"
+	fi
+}
+
 bot_tg() {
 	chat_id=${data_arr[3]}
 	text=${full_text_news}
@@ -94,10 +174,10 @@ bot_tg() {
 	# send message to de dev
 	if [[ $1 -eq 1 ]]; then
 		chat_id=${data_arr[4]}
-		text="bug+on+bot"
+		text="bug on bot"
 	fi
 
-	curl -L -s \
+	curl -sS \
 	-X POST \
 	"${data_arr[1]}/bot${data_arr[2]}/sendMessage" \
 	-d chat_id="$chat_id" \
@@ -113,3 +193,4 @@ main() {
 }
 
 main "$@"
+
