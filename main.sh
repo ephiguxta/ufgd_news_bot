@@ -24,7 +24,7 @@ get_json() {
 								-s "${data_arr[0]}" \
 								-o $path_json)
 
-	if [[ ! -e ${path_json/.json/}_old.json && \
+	if [[ ! -e "${path_json/.json/}_old.json" && \
 		$http_code -eq 200 ]]; then
 			hash=0
 
@@ -36,12 +36,14 @@ get_json() {
 			return
 
 	else
-		error_log $http_code
-		return
+
+		[[ $http_code -ne 200 ]] && \
+			error_log "$http_code" \
+			return
 	fi
 			
 	# code = 200 and ufgd_news.json is valid
-	if [[ $http_code -eq 200 && -s $path_json ]]; then
+	if [[ $http_code -eq 200 && -e $path_json ]]; then
 		local new_file_hash
 		local old_file_hash
 
@@ -53,7 +55,7 @@ get_json() {
 
 		# compare if the site data changed
 		# ${#md5sum_string} -eq 32
-		if [[ ${new_file_hash::32} != "${old_file_hash::32}" ]]; then
+		if [[ "${new_file_hash::32}" != "${old_file_hash::32}" ]]; then
 			hash=0
 		fi
 
@@ -61,7 +63,7 @@ get_json() {
 		[[ $hash -eq 0 ]] && parse_data $hash
 		
 	else
-		error_log $http_code
+		error_log "$http_code"
 
 	fi
 }
@@ -210,7 +212,7 @@ bot_tg() {
 main() {
 	while true; do
 		get_json
-		sleep 5m 
+		sleep 5m
 	done
 }
 
