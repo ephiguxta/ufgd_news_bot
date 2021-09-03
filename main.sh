@@ -24,13 +24,20 @@ get_json() {
 								-s "${data_arr[0]}" \
 								-o $path_json)
 
-	if [[ ! -e ${path_json/.json/}_old.json ]]; then
+	if [[ ! -e ${path_json/.json/}_old.json && \
+		$http_code -eq 200 ]]; then
+
 			parse_data $hash
 
 			# other file name need to be: ufgd_news_old.json
 			cp  $path_json "${path_json/.json/}_old.json"
 
 			return
+
+	else
+		hash=1
+		error_log $hash
+
 	fi
 			
 	# code = 200 and ufgd_news.json is valid
@@ -53,20 +60,27 @@ get_json() {
 
 		# if have new news the bot send msg:
 		[[ $hash -eq 0 ]] && parse_data $hash
+	else
+		error_log $hash
+
 	fi
 }
 
+# if the reqs to the site fail, the dev will
+# ne notified
+error_log() {
+	echo "[$(date +%H%M)] error: $1" >> error_log
+	bot_tg "$1"
+}
 	
 parse_data() {
 	if [[ $1 -eq 0 ]]; then
 
 		title=$(jq '.Informes[0].titulo' "$path_json" | \
 			url_encode)
-		echo -e "\n[${title}]\n"
 
 		desc=$(jq '.Informes[0].descricao' "$path_json" | \
 			url_encode)
-		echo -e "\n[${desc}]\n"
 
 		resp_sec=$(jq '.Informes[0].setorResponsavel' "$path_json" | \
 			url_encode)
@@ -87,10 +101,6 @@ parse_data() {
 
 		bot_tg "$1"
 
-	else
-		echo "[$(date +%H%M)] error: $1" >> error_log
-		bot_tg "$1"
-
 	fi
 }
 
@@ -99,9 +109,11 @@ url_encode() {
 	local url
 
 	if [[ -p /dev/stdin ]]; then
+		# reading data from pipe
 		read -r url 
 
 		for(( i=0; i < ${#url}; i++)); do
+
 			# isolating each char
 			local char="${url:${i}:1}"
 
@@ -163,7 +175,7 @@ url_encode() {
 					;;
 			esac
 
-			#[a-A0-9]
+			# ignoring [a-A0-9] characters
 			new_url[${i}]="$char"
 			
 		done
@@ -177,12 +189,16 @@ bot_tg() {
 	chat_id=${data_arr[3]}
 	text=${full_text_news}
 
-	# send message to de dev
+	# send message to the dev,
+	# these conditions are linked
+	# with the function: 'error_log' 
 	if [[ $1 -eq 1 ]]; then
 		chat_id=${data_arr[4]}
 		text="bug on bot"
-	fi
 
+	fi # or send default msg to channel
+
+	# request bot_api with parsed text
 	curl -s \
 	-X POST \
 	"${data_arr[1]}/bot${data_arr[2]}/sendMessage" \
@@ -194,7 +210,7 @@ bot_tg() {
 main() {
 	while true; do
 		get_json
-		sleep 300 
+		sleep 5m 
 	done
 }
 
