@@ -7,7 +7,7 @@ declare -a data_arr
 #4: chat_id
 #5: dev_chat_id
 
-for i in {1..4}
+for i in {1..5}
 do
 	# good vectors start at zero
 	data_arr[$(( i - 1 ))]=$(sed -n "${i}p" "$1")
@@ -17,7 +17,7 @@ done
 # maintain two files to compare in each requests
 get_json() {
 	local path_json='/tmp/ufgd_news.json'
-	hash=0
+	hash=1
 
 	# getting news json
 	http_code=$(curl --write-out "%{http_code}" \
@@ -26,6 +26,7 @@ get_json() {
 
 	if [[ ! -e ${path_json/.json/}_old.json && \
 		$http_code -eq 200 ]]; then
+			hash=0
 
 			parse_data $hash
 
@@ -35,9 +36,8 @@ get_json() {
 			return
 
 	else
-		hash=1
-		error_log $hash
-
+		error_log $http_code
+		return
 	fi
 			
 	# code = 200 and ufgd_news.json is valid
@@ -53,15 +53,15 @@ get_json() {
 
 		# compare if the site data changed
 		# ${#md5sum_string} -eq 32
-		hash=1
 		if [[ ${new_file_hash::32} != "${old_file_hash::32}" ]]; then
 			hash=0
 		fi
 
 		# if have new news the bot send msg:
 		[[ $hash -eq 0 ]] && parse_data $hash
+		
 	else
-		error_log $hash
+		error_log $http_code
 
 	fi
 }
@@ -69,8 +69,8 @@ get_json() {
 # if the reqs to the site fail, the dev will
 # ne notified
 error_log() {
-	echo "[$(date +%H%M)] error: $1" >> error_log
-	bot_tg "$1"
+	echo "[$(date +%H:%M)] http_code: $http_code" >> error_log
+	bot_tg 1
 }
 	
 parse_data() {
