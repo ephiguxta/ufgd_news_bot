@@ -28,13 +28,12 @@ get_json() {
 		$http_code -eq 200 ]]; then
 			hash=0
 
+			# other file name need to be: ufgd_news_old.json
+			cp $path_json "${path_json/.json/}_old.json"
+
 			parse_data $hash
 
-			# other file name need to be: ufgd_news_old.json
-			cp  $path_json "${path_json/.json/}_old.json"
-
 			return
-
 	else
 
 		[[ $http_code -ne 200 ]] && \
@@ -47,8 +46,6 @@ get_json() {
 		local new_file_hash
 		local old_file_hash
 
-		# other file name need to be: ufgd_news_old.json
-		cp  $path_json "${path_json/.json/}_old.json"
 		
 		new_file_hash=$(md5sum < $path_json)
 		old_file_hash=$(md5sum < "${path_json/.json/}_old.json")
@@ -58,6 +55,9 @@ get_json() {
 		if [[ "${new_file_hash::32}" != "${old_file_hash::32}" ]]; then
 			hash=0
 		fi
+
+		# other file name need to be: ufgd_news_old.json
+		cp  $path_json "${path_json/.json/}_old.json"
 
 		# if have new news the bot send msg:
 		[[ $hash -eq 0 ]] && parse_data $hash
