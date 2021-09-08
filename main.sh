@@ -97,7 +97,7 @@ parse_data() {
 		desc="${desc}%0A"
 
 		ufgd_url='https://ufgd\.edu\.br'
-		url="\[[acesse\_aqui](${ufgd_url}${url:2:-2})\]"
+		url="\[[acesse\_aqui](${ufgd_url}${url:3:-2})\]"
 
 		full_text_news="${title}${resp_sec}${desc}${url}"
 
@@ -114,76 +114,10 @@ url_encode() {
 		# reading data from pipe
 		read -r url 
 
-		for(( i=0; i < ${#url}; i++)); do
-
-			# isolating each char
-			local char="${url:${i}:1}"
-
-			case $char in
-				'  ' | ' ')
-					new_url[${i}]="%20"
-					continue
-					;;
-
-				'&')
-					new_url[${i}]='\&'
-					continue
-					;;
-
-				\')
-					new_url[${i}]=''
-					continue
-					;;
-					
-				\")
-					new_url[${i}]='\"'
-					continue
-					;;
-
-				'-')
-					new_url[${i}]='\-'
-					continue
-					;;
-
-				'+')
-					new_url[${i}]='\+'
-					continue;
-					;;
-
-				'/')
-					new_url[${i}]='\/'
-					continue
-					;;
-
-				'.')
-					new_url[${i}]='\.'
-					#"%2E"
-					continue
-					;;
-
-				'#')
-					new_url[${i}]='\#'
-					continue
-					;;
-					
-				':')
-					new_url[${i}]='\:'
-					continue
-					;;
-
-				'=')
-					new_url[${i}]='\='
-					continue
-					;;
-			esac
-
-			# ignoring [a-A0-9] characters
-			new_url[${i}]="$char"
-			
-		done
+		new_url[${i}]=$(sed -r "s/[[:punct:]]/\\\\\0/g" <<< "$url")
 
 		#TODO: find another method to join the string
-		sed 's/ //g' <<< "${new_url[*]}"
+		sed 's/ /+/g' <<< "${new_url[*]}"
 	fi
 }
 
