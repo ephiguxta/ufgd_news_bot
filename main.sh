@@ -115,9 +115,10 @@ url_encode() {
 		read -r url 
 
 		new_url[${i}]=$(sed -r "s/[[:punct:]]/\\\\\0/g" <<< "$url")
+		new_url=${new_url[*]// /+}
 
-		#TODO: find another method to join the string
-		sed 's/ /+/g' <<< "${new_url[*]}"
+		#TODO: another way to redirect?!
+		echo "$new_url"
 	fi
 }
 
