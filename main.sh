@@ -63,6 +63,8 @@ get_json() {
 		[[ $hash -eq 0 ]] && parse_data $hash
 		
 	else
+		# if request not valid and file json not generated,
+		# generate logs and msg to dev
 		error_log "$http_code"
 
 	fi
@@ -77,6 +79,9 @@ error_log() {
 	
 parse_data() {
 	if [[ $1 -eq 0 ]]; then
+
+		# treating brute data from json and passing
+		# to url_encode treat them
 
 		title=$(jq '.Informes[0].titulo' "$path_json" | \
 			url_encode)
@@ -114,6 +119,7 @@ url_encode() {
 		# reading data from pipe
 		read -r url 
 
+		# putting backslashes to escape symbol chars
 		new_url[${i}]=$(sed -r "s/[[:punct:]]/\\\\\0/g" <<< "$url")
 		new_url=${new_url[*]// /+}
 
