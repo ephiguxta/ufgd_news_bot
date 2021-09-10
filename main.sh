@@ -3,11 +3,11 @@
 source 'mod/tg_api/check_repost.sh'
 
 declare -a data_arr
-#1: ufgd_news_url
-#2: tg_bot_api
-#3: bot_token
-#4: chat_id
-#5: dev_chat_id
+# 1: ufgd_news_url
+# 2: tg_bot_api
+# 3: bot_token
+# 4: chat_id
+# 5: dev_chat_id
 
 for i in {1..5}
 do
@@ -20,6 +20,10 @@ done
 get_json() {
 	local path_json='/tmp/ufgd_news.json'
 	hash=1
+
+	#TODO: file_mtime()
+	#	check if file exists and has been modified in the last 5min,
+	#	to avoid requisitions if the script has been executed and stopped
 
 	# getting news json
 	http_code=$(curl --write-out "%{http_code}" \
@@ -35,12 +39,13 @@ get_json() {
 
 			parse_data $hash
 
+			# TODO: make a functional return 
 			return
 	else
 
 		[[ $http_code -ne 200 ]] && \
 			error_log "$http_code" \
-			return
+			return # see the last TODO
 	fi
 			
 	# code = 200 and ufgd_news.json is valid
@@ -97,7 +102,7 @@ parse_data() {
 		url=$(jq '.Informes[0].url' "$path_json" | \
 			url_encode)
 
-		#formating to post in telegram
+		# formating to post in telegram
 
 		title="*${title}*%0A"
 		resp_sec="%5F%5FFonte:%20${resp_sec}%5F%5F%0A%0A"
