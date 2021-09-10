@@ -25,6 +25,10 @@ input_prompt() {
 
 main() {
 	input_prompt
+
+	# creating repo to store logs
+	# TODO: just this?!
+	mkdir log
 }
 
 main

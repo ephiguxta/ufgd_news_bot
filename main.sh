@@ -1,5 +1,7 @@
 #!/bin/bash
 
+source 'mod/tg_api/check_repost.sh'
+
 declare -a data_arr
 #1: ufgd_news_url
 #2: tg_bot_api
@@ -46,7 +48,7 @@ get_json() {
 		local new_file_hash
 		local old_file_hash
 
-		
+		#TODO: make checksum only in the last news
 		new_file_hash=$(md5sum < $path_json)
 		old_file_hash=$(md5sum < "${path_json/.json/}_old.json")
 
@@ -106,7 +108,9 @@ parse_data() {
 
 		full_text_news="${title}${resp_sec}${desc}${url}"
 
-		bot_tg "$1"
+		# if the post exists on the channel, don't post him
+		check_repost ${full_text_news} && \
+			bot_tg "$1"
 
 	fi
 }
