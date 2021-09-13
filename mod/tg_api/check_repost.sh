@@ -20,7 +20,7 @@ check_repost() {
 		do
 			local old_posts
 			# math expr is to avoid blank lines
-			old_posts=$(sed -n "$(( i + 1 ))p" 'log/posts.txt')
+			old_posts=$(sed "$(( i + 1 ))q;d" 'log/posts.txt')
 
 			hash_old=$(md5sum <<< "$old_posts")
 
