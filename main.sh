@@ -16,28 +16,32 @@ do
 done
 
 # make requests to ufgd news and parse this data,
-# maintain two files to compare in each requests
+# maintain four files to compare two of them in each requests
 get_json() {
-	local path_json='/tmp/ufgd_news.json'
+	local path_json="/tmp/${1}.json"
 	hash=1
 
 	#TODO: file_mtime()
 	#	check if file exists and has been modified in the last 5min,
 	#	to avoid requisitions if the script has been executed and stopped
 
+	# trade 'xxx' to 'informes' or 'noticias'
+	site="${data_arr[0]}"
+	site="${site//xxx/${1}}"
+
 	# getting news json
 	http_code=$(curl --write-out "%{http_code}" \
-								-s "${data_arr[0]}" \
-								-o $path_json)
+								-s "$site" \
+								-o "$path_json")
 
 	if [[ ! -e "${path_json/.json/}_old.json" && \
 		$http_code -eq 200 ]]; then
 			hash=0
 
-			# other file name need to be: ufgd_news_old.json
-			cp $path_json "${path_json/.json/}_old.json"
+			# other file name need to be: ${path_json}_old.json
+			cp "$path_json" "${path_json/.json/}_old.json"
 
-			parse_data $hash
+			parse_data "$path_json" "$1"
 
 			# TODO: make a functional return 
 			return
@@ -54,20 +58,18 @@ get_json() {
 		local old_file_hash
 
 		#TODO: make checksum only in the last news
-		new_file_hash=$(md5sum < $path_json)
+		new_file_hash=$(md5sum < "$path_json")
 		old_file_hash=$(md5sum < "${path_json/.json/}_old.json")
 
 		# compare if the site data changed
 		# ${#md5sum_string} -eq 32
-		if [[ "${new_file_hash::32}" != "${old_file_hash::32}" ]]; then
-			hash=0
-		fi
+		[[ "${new_file_hash::32}" != "${old_file_hash::32}" ]] && hash=0
 
 		# other file name need to be: ufgd_news_old.json
-		cp  $path_json "${path_json/.json/}_old.json"
+		cp "$path_json" "${path_json/.json/}_old.json"
 
 		# if have new news the bot send msg:
-		[[ $hash -eq 0 ]] && parse_data $hash
+		[[ $hash -eq 0 ]] && parse_data "$path_json" "$1"
 		
 	else
 		# if request not valid and file json not generated,
@@ -85,55 +87,61 @@ error_log() {
 }
 	
 parse_data() {
-	if [[ $1 -eq 0 ]]; then
+	# treating brute data from json and passing
+	# to url_encode treat them
 
-		# treating brute data from json and passing
-		# to url_encode treat them
+	parent="${2^}"
+	
+	title=$(jq ".${parent}[0].titulo" "$path_json" | url_encode)
 
-		title=$(jq '.Informes[0].titulo' "$path_json" | \
-			url_encode)
-
-		desc=$(jq '.Informes[0].descricao' "$path_json" | \
-			url_encode)
-
-		resp_sec=$(jq '.Informes[0].setorResponsavel' "$path_json" | \
-			url_encode)
-										
-		url=$(jq '.Informes[0].url' "$path_json" | \
-			url_encode)
-
-		# formating to post in telegram
-
-		title="*${title}*%0A"
-		resp_sec="%5F%5FFonte:%20${resp_sec}%5F%5F%0A%0A"
-		desc="${desc}%0A"
-
-		ufgd_url='https://ufgd\.edu\.br'
-		url="\[[acesse\_aqui](${ufgd_url}${url:3:-2})\]"
-
-		full_text_news="${title}${resp_sec}${desc}${url}"
-
-		# if the post exists on the channel, don't post him
-		check_repost ${full_text_news} && \
-			bot_tg "$1"
-
+	desc=$(jq ".${parent}[0].descricao" "$path_json" | url_encode)
+	
+	if [[ "$2" == 'informes' ]]; then
+		resp_sec=$(jq ".${parent}[0].setorResponsavel" "$path_json" | url_encode)
+	else
+		resp_sec=$(jq ".${parent}[0].autor" "$path_json" | url_encode)
 	fi
+
+	# the path '/informes' gives the beginning
+	# of a URL other than '/news'
+	url=$(jq ".${parent}[0].url" "$path_json" | url_encode)
+	if [[ "${url:2:1}" == 'f' ]]; then
+		to_del=${url:0:3}
+		
+		# inserting some '/' to validate the url
+		url="\/\/f${url/${to_del}/}"
+	fi
+	
+	# formating to post in telegram
+
+	title="*${title}*%0A"
+	resp_sec="%5F%5FFonte:%20${resp_sec}%5F%5F%0A%0A"
+	desc="${desc}%0A"
+
+	ufgd_url='https://ufgd\.edu\.br'
+	url="\[[acesse\_aqui](${ufgd_url}${url:3:-2})\]"
+
+	full_text_news="${title}${resp_sec}${desc}${url}"
+
+	# if the post exists on the channel, don't post him
+	check_repost "${full_text_news}" && \
+		bot_tg 0
 }
 
 url_encode() {
-	declare -a new_url=""
+	local new_data
 	local url
 
 	if [[ -p /dev/stdin ]]; then
 		# reading data from pipe
-		read -r url 
+		read -r data
 
 		# putting backslashes to escape symbol chars
-		new_url[${i}]=$(sed -r "s/[[:punct:]]/\\\\\0/g" <<< "$url")
-		new_url=${new_url[*]// /+}
+		new_data=$(sed -r "s/[[:punct:]]/\\\\\0/g" <<< "$data")
+		new_data=$(sed -r "s/ /+/g" <<< "$new_data")
 
 		#TODO: another way to redirect?!
-		echo "$new_url"
+		echo "$new_data"
 	fi
 }
 
@@ -161,7 +169,12 @@ bot_tg() {
 
 main() {
 	while true; do
-		get_json
+	
+		for i in "noticias" "informes";
+		do
+			get_json "$i"
+		done
+
 		sleep 5m
 	done
 }

@@ -1,11 +1,14 @@
 #!/bin/bash
 
+#TODO: maintain two logs instead just one
 check_repost() {
+	local full_text_news
+	full_text_news="$1"
+
 	# first time script being executed
 	if [[ ! -e 'log/posts.txt' ]]; then
 		# putting data on posts.txt 
 		echo -e "\n${full_text_news}" >> log/posts.txt
-		return 0
 
 	else
 		local lines
@@ -28,8 +31,12 @@ check_repost() {
 				# posts exists on logs
 				echo -e "[$(date +%H:%M)] this posts exists\n" \
 					>> error_log
-
 				return 1
+
+			else
+				echo -e "\n${full_text_news}" >> log/posts.txt
+				return 0
+
 			fi
 		done
 	fi
