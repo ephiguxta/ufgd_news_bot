@@ -3,7 +3,7 @@
 declare -a data
 
 # basic data
-data[0]='https://ufgd.edu.br/informes/listagem?pagina=1'
+data[0]='https://ufgd.edu.br/xxx/listagem?pagina=1'
 data[1]='https://api.telegram.org'
 
 input_prompt() {
