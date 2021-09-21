@@ -105,11 +105,11 @@ parse_data() {
 	# the path '/informes' gives the beginning
 	# of a URL other than '/news'
 	url=$(jq ".${parent}[0].url" "$path_json" | url_encode)
-	if [[ "${url:2:1}" == 'f' ]]; then
-		to_del=${url:0:3}
+	if [[ "${parent}" == 'Noticias' ]]; then
+		to_del=${url:0:2}
 		
 		# inserting some '/' to validate the url
-		url="\/\/noticias/f${url/${to_del}/}"
+		url="\/\/noticias/${url/${to_del}/}"
 	fi
 	
 	# formating to post in telegram
