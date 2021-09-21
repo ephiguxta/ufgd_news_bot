@@ -109,7 +109,7 @@ parse_data() {
 		to_del=${url:0:3}
 		
 		# inserting some '/' to validate the url
-		url="\/\/f${url/${to_del}/}"
+		url="\/\/noticias/f${url/${to_del}/}"
 	fi
 	
 	# formating to post in telegram
