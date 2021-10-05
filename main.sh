@@ -106,7 +106,7 @@ parse_data() {
 	# of a URL other than '/news'
 	url=$(jq ".${parent}[0].url" "$path_json" | url_encode)
 	if [[ "${parent}" == 'Noticias' ]]; then
-		to_del=${url:0:2}
+		to_del="${url:0:2}"
 		
 		# inserting some '/' to validate the url
 		url="\/\/noticias/${url/${to_del}/}"
@@ -136,10 +136,13 @@ url_encode() {
 		# reading data from pipe
 		read -r data
 
+		echo "$data" 1>&2
+
 		# putting backslashes to escape symbol chars
 		# and reducing space size.
-		new_data=$(sed -r "s/[[:space:]]+/+/g" <<< "$new_data")
-		new_data=$(sed -r "s/[[:punct:]]/\\\\\0/g" <<< "$data")
+		new_data=$(sed -r 's/\xc2\xa0{2}//g; s/\xc2\xa0/ /g' <<< "$data")
+		new_data=$(sed -r "s/[[:blank:]]/+/g" <<< "$new_data")
+		new_data=$(sed -r "s/[[:punct:]]/\\\\\0/g" <<< "$new_data")
 
 		#TODO: another way to redirect?!
 		echo "$new_data"
@@ -147,14 +150,14 @@ url_encode() {
 }
 
 bot_tg() {
-	chat_id=${data_arr[3]}
-	text=${full_text_news}
+	chat_id="${data_arr[3]}"
+	text="$full_text_news"
 
 	# send message to the dev,
 	# these conditions are linked
 	# with the function: 'error_log' 
-	if [[ $1 -eq 1 ]]; then
-		chat_id=${data_arr[4]}
+	if [[ "$1" -eq 1 ]]; then
+		chat_id="${data_arr[4]}"
 		text="bug on bot"
 
 	fi # or send default msg to channel
