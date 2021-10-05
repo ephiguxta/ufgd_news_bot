@@ -137,8 +137,9 @@ url_encode() {
 		read -r data
 
 		# putting backslashes to escape symbol chars
+		# and reducing space size.
+		new_data=$(sed -r "s/[[:space:]]+/+/g" <<< "$new_data")
 		new_data=$(sed -r "s/[[:punct:]]/\\\\\0/g" <<< "$data")
-		new_data=$(sed -r "s/ /+/g" <<< "$new_data")
 
 		#TODO: another way to redirect?!
 		echo "$new_data"
