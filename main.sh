@@ -136,13 +136,14 @@ url_encode() {
 		# reading data from pipe
 		read -r data
 
-		echo "$data" 1>&2
-
 		# putting backslashes to escape symbol chars
 		# and reducing space size.
-		new_data=$(sed -r 's/\xc2\xa0{2}//g; s/\xc2\xa0/ /g' <<< "$data")
-		new_data=$(sed -r "s/[[:blank:]]/+/g" <<< "$new_data")
-		new_data=$(sed -r "s/[[:punct:]]/\\\\\0/g" <<< "$new_data")
+		new_data=$(sed -r "{
+			s/\xc2\xa0{2}//g
+			s/\xc2\xa0/ /g
+			s/[[:blank:]]/+/g
+			s/[[:punct:]]/\\\\\0/g
+		}" <<< "$data")
 
 		#TODO: another way to redirect?!
 		echo "$new_data"
