@@ -139,8 +139,8 @@ url_encode() {
 		# putting backslashes to escape symbol chars
 		# and reducing space size.
 		new_data=$(sed -r "{
-			s/\xc2\xa0{2}//g
 			s/\xc2\xa0/ /g
+			s/\xa0//g
 			s/[[:blank:]]/+/g
 			s/[[:punct:]]/\\\\\0/g
 		}" <<< "$data")
