@@ -6,10 +6,10 @@ check_repost() {
 	full_text_news="$1"
 
 	# first time script being executed
-	if [[ ! -e 'log/posts.txt' ]]; then
+	if [[ ! -e 'log' ]]; then
 		# putting data on posts.txt 
 		mkdir log
-		echo -e "\n$full_text_news" > log/posts.txt
+		echo "$full_text_news" > log/posts.txt
 
 	else
 		local lines
@@ -20,25 +20,27 @@ check_repost() {
 		hash=$(md5sum <<< "$full_text_news")
 		hash=${hash::32}
 
-		for (( i=0; i<="$lines"; i++ ))
+		for (( i=1; i<="$lines"; i++ ))
 		do
 			local old_posts
-			# math expr is to avoid blank lines
-			old_posts=$(sed "$(( i + 1 ))q;d" 'log/posts.txt')
+			old_posts=$(sed "${i}q;d" 'log/posts.txt')
 
 			hash_old=$(md5sum <<< "$old_posts")
 			hash_old="${hash_old::32}"
 
 			if [[ "$hash" = "$hash_old" ]]; then
 				# posts exists on logs
-				echo -e "[$(date +%H:%M)] this posts exists\n" \
-					>> error_log
+				echo "[$(date +%H:%M)] this posts exists" >> error_log
 				return 1
 
 			else
-				echo -e "\n$full_text_news" >> log/posts.txt
-				return 0
+				if [[ "$i" == "$lines" ]]; then
+					echo "$full_text_news" >> log/posts.txt
+					return 0
+				fi
 
+				# compare the next post
+				continue
 			fi
 		done
 	fi
