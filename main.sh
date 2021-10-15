@@ -105,7 +105,7 @@ parse_data() {
 	# the path '/informes' gives the beginning
 	# of a URL other than '/news'
 	url=$(jq ".${parent}[0].url" "$path_json" | url_encode)
-	if [[ "${parent}" == 'Noticias' ]]; then
+	if [[ "$parent" == 'Noticias' ]]; then
 		to_del="${url:0:2}"
 		
 		# inserting some '/' to validate the url
@@ -124,7 +124,7 @@ parse_data() {
 	full_text_news="${title}${resp_sec}${desc}${url}"
 
 	# if the post exists on the channel, don't post him
-	check_repost "${full_text_news}" && \
+	check_repost "$full_text_news" && \
 		bot_tg 0
 }
 
@@ -159,7 +159,7 @@ bot_tg() {
 	# with the function: 'error_log' 
 	if [[ "$1" -eq 1 ]]; then
 		chat_id="${data_arr[4]}"
-		text="bug on bot"
+		text='bug on bot'
 
 	fi # or send default msg to channel
 
@@ -175,7 +175,7 @@ bot_tg() {
 main() {
 	while true; do
 	
-		for i in "noticias" "informes";
+		for i in 'noticias' 'informes';
 		do
 			get_json "$i"
 		done

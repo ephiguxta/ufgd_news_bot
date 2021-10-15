@@ -20,7 +20,7 @@ check_repost() {
 		hash=$(md5sum <<< "$full_text_news")
 		hash=${hash::32}
 
-		for (( i=0; i<="${lines}"; i++ ))
+		for (( i=0; i<="$lines"; i++ ))
 		do
 			local old_posts
 			# math expr is to avoid blank lines
