@@ -11,6 +11,9 @@ check_repost() {
 		mkdir log
 		echo "$full_text_news" > log/posts.txt
 
+		# first script start
+		return 0
+
 	else
 		local lines
 		# getting total of lines in posts.txt
