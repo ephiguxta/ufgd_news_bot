@@ -1,6 +1,7 @@
 #!/bin/bash
 
 source 'mod/tg_api/check_repost.sh'
+source 'mod/host/file_mtime.sh'
 
 declare -a data_arr
 # 1: ufgd_news_url
@@ -29,10 +30,21 @@ get_json() {
 	site="${data_arr[0]}"
 	site="${site//xxx/${1}}"
 
-	# getting news json
-	http_code=$(curl --write-out "%{http_code}" \
-								-s "$site" \
-								-o "$path_json")
+	local http_code
+	local mtime
+	# if the file not exists or was modified more than 5min ago
+	file_mtime "$path_json"
+	mtime="$?"
+	if [ ! -e "$path_json" ] || [ $mtime -eq 0 ]; then
+		# getting news json
+		http_code=$(curl --write-out "%{http_code}" \
+			-s "$site" \
+			-o "$path_json")
+	else
+		parse_data "$path_json" "$1"
+
+		return 0
+	fi
 
 	if [ ! -e "${path_json/.json/}_old.json" ] && \
 		[ $http_code -eq 200 ]; then
@@ -43,13 +55,12 @@ get_json() {
 
 			parse_data "$path_json" "$1"
 
-			# TODO: make a functional return 
-			return
+			return 0
 	else
 
 		[ $http_code -ne 200 ] && \
 			error_log "$http_code" \
-			return # see the last TODO
+			return 1
 	fi
 			
 	# code = 200 and ufgd_news.json is valid
@@ -139,6 +150,10 @@ url_encode() {
 
 		# putting backslashes to escape symbol chars
 		# and reducing space size.
+
+		# TODO: when this regex is applied to the '-' char,
+		#	we have a problem, in the tg channel the msg is '\-'
+		#  and note '-'
 		new_data=$(sed -r "{
 			s/\xc2\xa0/ /g
 			s/\xa0//g
@@ -146,7 +161,6 @@ url_encode() {
 			s/[[:punct:]]/\\\\\0/g
 		}" <<< "$data")
 
-		#TODO: another way to redirect?!
 		echo "$new_data"
 	fi
 }
@@ -166,11 +180,11 @@ bot_tg() {
 
 	# request bot_api with parsed text
 	curl -s \
-	-X POST \
-	"${data_arr[1]}/bot${data_arr[2]}/sendMessage" \
-	-d chat_id="$chat_id" \
-	-d parse_mode='MarkdownV2' \
-	-d text="$text"
+		-X POST \
+		"${data_arr[1]}/bot${data_arr[2]}/sendMessage" \
+		-d chat_id="$chat_id" \
+		-d parse_mode='MarkdownV2' \
+		-d text="$text"
 }
 
 main() {
