@@ -34,8 +34,8 @@ get_json() {
 								-s "$site" \
 								-o "$path_json")
 
-	if [[ ! -e "${path_json/.json/}_old.json" && \
-		$http_code -eq 200 ]]; then
+	if [ ! -e "${path_json/.json/}_old.json" ] && \
+		[ $http_code -eq 200 ]; then
 			hash=0
 
 			# other file name need to be: ${path_json}_old.json
@@ -47,13 +47,13 @@ get_json() {
 			return
 	else
 
-		[[ $http_code -ne 200 ]] && \
+		[ $http_code -ne 200 ] && \
 			error_log "$http_code" \
 			return # see the last TODO
 	fi
 			
 	# code = 200 and ufgd_news.json is valid
-	if [[ $http_code -eq 200 && -e $path_json ]]; then
+	if [ "$http_code" -eq 200 ] && [ -e "$path_json" ]; then
 		local new_file_hash
 		local old_file_hash
 
@@ -63,13 +63,13 @@ get_json() {
 
 		# compare if the site data changed
 		# ${#md5sum_string} -eq 32
-		[[ "${new_file_hash::32}" != "${old_file_hash::32}" ]] && hash=0
+		[ "${new_file_hash::32}" != "${old_file_hash::32}" ] && hash=0
 
 		# other file name need to be: ufgd_news_old.json
 		cp "$path_json" "${path_json/.json/}_old.json"
 
 		# if have new news the bot send msg:
-		[[ $hash -eq 0 ]] && parse_data "$path_json" "$1"
+		[ $hash -eq 0 ] && parse_data "$path_json" "$1"
 		
 	else
 		# if request not valid and file json not generated,
@@ -96,8 +96,9 @@ parse_data() {
 
 	desc=$(jq ".${parent}[0].descricao" "$path_json" | url_encode)
 	
-	if [[ "$2" == 'informes' ]]; then
-		resp_sec=$(jq ".${parent}[0].setorResponsavel" "$path_json" | url_encode)
+	if [ "$2" == 'informes' ]; then
+		resp_sec=$(jq ".${parent}[0].setorResponsavel" "$path_json" | \
+			url_encode)
 	else
 		resp_sec=$(jq ".${parent}[0].autor" "$path_json" | url_encode)
 	fi
@@ -105,7 +106,7 @@ parse_data() {
 	# the path '/informes' gives the beginning
 	# of a URL other than '/news'
 	url=$(jq ".${parent}[0].url" "$path_json" | url_encode)
-	if [[ "$parent" == 'Noticias' ]]; then
+	if [ "$parent" == 'Noticias' ]; then
 		to_del="${url:0:2}"
 		
 		# inserting some '/' to validate the url
@@ -132,7 +133,7 @@ url_encode() {
 	local new_data
 	local url
 
-	if [[ -p /dev/stdin ]]; then
+	if [ -p /dev/stdin ]; then
 		# reading data from pipe
 		read -r data
 
@@ -157,7 +158,7 @@ bot_tg() {
 	# send message to the dev,
 	# these conditions are linked
 	# with the function: 'error_log' 
-	if [[ "$1" -eq 1 ]]; then
+	if [ "$1" -eq 1 ]; then
 		chat_id="${data_arr[4]}"
 		text='bug on bot'
 
