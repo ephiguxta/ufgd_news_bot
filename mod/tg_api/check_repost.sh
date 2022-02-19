@@ -6,7 +6,7 @@ check_repost() {
 	full_text_news="$1"
 
 	# first time script being executed
-	if [ ! -e 'log' ]; then
+	if ! test -d 'log'; then
 		# putting data on posts.txt 
 		mkdir log
 		echo "$full_text_news" > log/posts.txt
@@ -31,13 +31,13 @@ check_repost() {
 			hash_old=$(md5sum <<< "$old_posts")
 			hash_old="${hash_old::32}"
 
-			if [ "$hash" = "$hash_old" ]; then
+			if test "$hash" = "$hash_old"; then
 				# posts exists on logs
 				echo "[$(date +%H:%M)] this posts exists" >> error_log
 				return 1
 
 			else
-				if [ "$i" == "$lines" ]; then
+				if test "$i" = "$lines"; then
 					echo "$full_text_news" >> log/posts.txt
 					return 0
 				fi
