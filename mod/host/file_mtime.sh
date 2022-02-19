@@ -3,10 +3,17 @@
 file_mtime() {
 	local last_change
 	local new_change
-	
+
+	# this check is necessary to avoid errors on the first
+	# script attempt
+	if ! test -e "$1"; then
+		return 0
+	fi
+
 	# greping last modfied hour and minute from old json file
 	last_change=$(stat --format='%y' -t "$1" | \
 		grep -Eo '[0-9]{2}:[0-9]{2}')
+
 	# greping actual time
 	new_change=$(date '+%H:%M')
 
@@ -29,7 +36,8 @@ file_mtime() {
 
 	local math_check
 	math_check="$(( last_min - new_min ))"
-	if [ $last_hour -lt $new_hour ] || [ $math_check -le -5 ]; then
+
+	if (( last_hour < new_hour )) || (( math_check <= -5 )); then
 		return 0
 	fi
 

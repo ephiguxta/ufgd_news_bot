@@ -33,9 +33,6 @@ get_json() {
 	local http_code
 	local mtime
 
-	# if the file not exists or was modified more than 5min ago
-	# BUG: on the first exec of the script, the file /tmp/"foo".json
-	#	does not exist
 	file_mtime "$path_json"
 	mtime="$?"
 
