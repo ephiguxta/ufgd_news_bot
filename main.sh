@@ -1,20 +1,34 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 source 'mod/tg_api/check_repost.sh'
 source 'mod/host/file_mtime.sh'
 
-declare -a data_arr
-# 1: ufgd_news_url
-# 2: tg_bot_api
-# 3: bot_token
-# 4: chat_id
-# 5: dev_chat_id
+declare -A data_arr
 
-for i in {1..5}
-do
-	# good vectors start at zero
-	data_arr[$(( i - 1 ))]=$(sed -n "${i}p" "$1")
+keys=(
+  'ufgd_news_url'
+  'tg_bot_api'
+  'bot_token'
+  'channel_id'
+)
+
+# TODO: dynamic filename
+#
+# getting links/tokens
+data=$(<login.txt)
+
+declare -i j
+j=0
+
+# attributing each data to the right key
+for i in $data; do
+  key="${keys[${j}]}"
+  data_arr["$key"]="$i"
+
+  j=$((++j))
 done
+
+unset j
 
 # make requests to ufgd news and parse this data,
 # maintain four files to compare two of them in each requests
@@ -27,7 +41,7 @@ get_json() {
 	#	to avoid requisitions if the script has been executed and stopped
 
 	# trade 'xxx' to 'informes' or 'noticias'
-	site="${data_arr[0]}"
+	site="${data_arr[ufgd_news_url]}"
 	site="${site//xxx/${1}}"
 
 	local http_code
@@ -168,25 +182,23 @@ url_encode() {
 }
 
 bot_tg() {
-	chat_id="${data_arr[3]}"
-	text="$full_text_news"
+  chat_id="${data_arr[channel_id]}"
+  text="$full_text_news"
 
-	# send message to the dev,
-	# these conditions are linked
-	# with the function: 'error_log' 
-	if (( "$1" == 1 )); then
-		chat_id="${data_arr[4]}"
-		text='bug on bot'
+  # send message to the dev,
+  # these conditions are linked
+  # with the function: 'error_log'
+  if (( "$1" == 1 )); then
+    text='bug on bot'
+  fi # or send default msg to channel
 
-	fi # or send default msg to channel
-
-	# request bot_api with parsed text
-	curl -s \
-		-X POST \
-		"${data_arr[1]}/bot${data_arr[2]}/sendMessage" \
-		-d chat_id="$chat_id" \
-		-d parse_mode='MarkdownV2' \
-		-d text="$text"
+  # request bot_api with parsed text
+  curl -s \
+    -X POST \
+    "${data_arr[tg_bot_api]}/bot${data_arr[bot_token]}/sendMessage" \
+    -d chat_id="$chat_id" \
+    -d parse_mode='MarkdownV2' \
+    -d text="$text"
 }
 
 main() {
