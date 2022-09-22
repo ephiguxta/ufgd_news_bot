@@ -17,26 +17,33 @@ file_mtime() {
 	# greping actual time
 	new_change=$(date '+%H:%M')
 
-
 	local last_hour
 	local last_min
 
 	# parsing data into hour and minute
 	last_hour="${last_change::2}"
 	last_min="${last_change:3:2}"
+
 	# deleting "0[0-9]+" cases
+        last_hour="${last_hour##0}"
 	last_min="${last_min##0}"
+
+        echo "last_{hour,minute} : [${last_hour}:${last_min}]" >> debug
 
 	local new_hour
 	local new_min
 	
 	new_hour="${new_change::2}"
 	new_min="${new_change:3:2}"
+
+        new_hour="${new_hour##0}"
 	new_min="${new_min##0}"
 
-	local math_check
+	local -i math_check
 	math_check="$(( last_min - new_min ))"
 
+        # TODO: a bug in logic, what happens if the script
+        # is stopped and run another day?
 	if (( last_hour < new_hour )) || (( math_check <= -5 )); then
 		return 0
 	fi

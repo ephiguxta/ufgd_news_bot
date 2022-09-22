@@ -32,77 +32,79 @@ unset j
 
 # make requests to ufgd news and parse this data,
 # maintain four files to compare two of them in each requests
+#
 get_json() {
-	local path_json="/tmp/${1}.json"
-	hash=1
+  # first argument is the url path ('noticias' or 'informes')
+  local path_json="/tmp/${1}.json"
 
-	#TODO: file_mtime()
-	#	check if file exists and has been modified in the last 5min,
-	#	to avoid requisitions if the script has been executed and stopped
+  local -i hash=1
 
-	# trade 'xxx' to 'informes' or 'noticias'
-	site="${data_arr[ufgd_news_url]}"
-	site="${site//xxx/${1}}"
+  #TODO: file_mtime()
+  # check if file exists and has been modified in the last 5min,
+  # to avoid requisitions if the script has been executed and stopped
 
-	local http_code
-	local mtime
+  # change 'xxx' to 'informes' or 'noticias'
+  site="${data_arr[ufgd_news_url]}"
+  site="${site//xxx/${1}}"
 
-	file_mtime "$path_json"
-	mtime="$?"
+  local -i http_code
 
-	if ! test -e "$path_json" || (( mtime == 0 )); then
-		# getting news json
-		http_code=$(curl --write-out "%{http_code}" \
-			-s "$site" \
-			-o "$path_json")
-	else
-		parse_data "$path_json" "$1"
+  # file_mtime (path: mod/host/file_mtime.sh)
+  local -i mtime=$(file_mtime "$path_json")
 
-		return 0
-	fi
+  if ! test -e "$path_json" || (( mtime == 0 )); then
+    # getting news json
+    http_code=$(curl --write-out "%{http_code}" \
+      -s "$site" \
+      -o "$path_json")
 
-	if ! test -e "${path_json/.json/}_old.json" && \
-		(( http_code == 200 )); then
-			hash=0
+  else
+    parse_data "$path_json" "$1"
+    return 0
 
-			# other file name need to be: ${path_json}_old.json
-			cp "$path_json" "${path_json/.json/}_old.json"
+  fi
 
-			parse_data "$path_json" "$1"
+  if ! test -e "${path_json/.json/}_old.json" && \
+    (( http_code == 200 )); then
+    hash=0
 
-			return 0
-	else
+    # other file name need to be: ${path_json}_old.json
+    cp "$path_json" "${path_json/.json/}_old.json"
 
-		(( http_code != 200 )) && \
-			error_log "$http_code" \
-			return 1
-	fi
-			
-	# code = 200 and ufgd_news.json is valid
-	if (( http_code == 200 )) && test -e "$path_json"; then
-		local new_file_hash
-		local old_file_hash
+    parse_data "$path_json" "$1"
 
-		#TODO: make checksum only in the last news
-		new_file_hash=$(md5sum < "$path_json")
-		old_file_hash=$(md5sum < "${path_json/.json/}_old.json")
+    return 0
 
-		# compare if the site data changed
-		# ${#md5sum_string} -eq 32
-		test "${new_file_hash::32}" != "${old_file_hash::32}" && hash=0
+  else
+    (( http_code != 200 )) && \
+      error_log "$http_code" \
+    return 1
+  fi
 
-		# other file name need to be: ufgd_news_old.json
-		cp "$path_json" "${path_json/.json/}_old.json"
+  # code = 200 and ufgd_news.json exists
+  if (( http_code == 200 )) && test -e "$path_json"; then
+    local new_file_hash
+    local old_file_hash
 
-		# if have new news the bot send msg:
-		(( hash == 0 )) && parse_data "$path_json" "$1"
-		
-	else
-		# if request not valid and file json not generated,
-		# generate logs and msg to dev
-		error_log "$http_code"
+  #TODO: make checksum only in the last news
+  new_file_hash=$(md5sum < "$path_json")
+  old_file_hash=$(md5sum < "${path_json/.json/}_old.json")
 
-	fi
+  # compare if the site data changed
+  # ${#md5sum_string} -eq 32
+  test "${new_file_hash::32}" != "${old_file_hash::32}" && hash=0
+
+  # other file name need to be: ufgd_news_old.json
+  cp "$path_json" "${path_json/.json/}_old.json"
+
+  # if have new news the bot send msg:
+  (( hash == 0 )) && parse_data "$path_json" "$1"
+
+  else
+    # if request not valid and file json not generated,
+    # generate logs and msg to dev
+    error_log "$http_code"
+  fi
 }
 
 # if the reqs to the site fail, the dev will
@@ -198,7 +200,8 @@ bot_tg() {
     "${data_arr[tg_bot_api]}/bot${data_arr[bot_token]}/sendMessage" \
     -d chat_id="$chat_id" \
     -d parse_mode='MarkdownV2' \
-    -d text="$text"
+    -d text="$text" \
+    | jq -r
 }
 
 main() {
